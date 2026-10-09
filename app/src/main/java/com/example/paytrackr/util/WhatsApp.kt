@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import com.example.paytrackr.data.CustomerDue
-import com.example.paytrackr.data.TransactionType
 import java.util.Locale
 
 fun formatAmount(amount: Double): String = "₹" + String.format(Locale.ENGLISH, "%,.2f", amount)
@@ -21,27 +20,7 @@ fun reminderMessage(
     val store = if (shopName.isNotBlank()) shopName.trim() else "PayTrackr"
     val sb = StringBuilder()
     sb.append("Namaste $name ji,")
-    sb.append("\n\nAapka *$store* par hisab (Pending Due):")
-
-    val dueItems = customerDue.transactions.filter { it.type == TransactionType.DUE }
-    if (dueItems.isNotEmpty()) {
-        dueItems.take(5).forEach { t ->
-            sb.append("\n• ${t.description.ifBlank { "Due" }}: ${formatAmount(t.amount)}")
-        }
-        if (dueItems.size > 5) {
-            sb.append("\n• (+${dueItems.size - 5} aur entries)")
-        }
-    }
-
-    val payments = customerDue.transactions.filter { it.type == TransactionType.PAYMENT }
-    if (payments.isNotEmpty()) {
-        sb.append("\n\nJama rashi (Paid):")
-        payments.take(3).forEach { p ->
-            sb.append("\n• ${p.description.ifBlank { "Payment" }}: -${formatAmount(p.amount)}")
-        }
-    }
-
-    sb.append("\n\n*Kul Baki Rashi (Total Due): ${formatAmount(due)}*")
+    sb.append("\n\nAapka *$store* par kul baki rashi (Pending Due): *${formatAmount(due)}* hai.")
 
     if (upiId.isNotBlank() && due > 0) {
         val cleanUpi = upiId.trim()

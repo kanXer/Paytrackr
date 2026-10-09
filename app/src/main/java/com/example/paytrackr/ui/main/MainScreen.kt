@@ -103,7 +103,6 @@ import com.example.paytrackr.data.Transaction
 import com.example.paytrackr.data.TransactionType
 import com.example.paytrackr.theme.PayTrackrTheme
 import com.example.paytrackr.util.formatAmount
-import com.example.paytrackr.util.reminderMessage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes

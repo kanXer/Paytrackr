@@ -18,8 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.BusinessCenter
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material3.AlertDialog
@@ -111,7 +111,7 @@ fun ReminderOptionsDialog(
                 ReminderOptionTile(
                     title = "WhatsApp",
                     subtitle = "Send via standard WhatsApp",
-                    icon = Icons.Default.Chat,
+                    icon = Icons.AutoMirrored.Filled.Chat,
                     accentColor = Color(0xFF25D366),
                     badgeText = "WA",
                     onClick = {
