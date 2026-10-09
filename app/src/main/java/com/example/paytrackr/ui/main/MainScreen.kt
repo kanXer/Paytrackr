@@ -103,7 +103,6 @@ import com.example.paytrackr.data.Transaction
 import com.example.paytrackr.data.TransactionType
 import com.example.paytrackr.theme.PayTrackrTheme
 import com.example.paytrackr.util.formatAmount
-import com.example.paytrackr.util.openWhatsAppReminder
 import com.example.paytrackr.util.reminderMessage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
@@ -272,6 +271,7 @@ fun CustomerListScreen(
     var transactionToDelete by remember { mutableStateOf<Pair<CustomerDue, Transaction>?>(null) }
     var customerToDelete by remember { mutableStateOf<CustomerDue?>(null) }
     var customerToSettle by remember { mutableStateOf<CustomerDue?>(null) }
+    var customerForReminder by remember { mutableStateOf<CustomerDue?>(null) }
 
     var showAddCustomerDialog by remember { mutableStateOf(false) }
     var showAuthBottomSheet by remember { mutableStateOf(false) }
@@ -688,15 +688,7 @@ fun CustomerListScreen(
                             initialTransactionType = TransactionType.DUE
                         },
                         onRemindClick = {
-                            openWhatsAppReminder(
-                                context = context,
-                                phone = customerDue.customer.phone,
-                                message = reminderMessage(
-                                    customerDue = customerDue,
-                                    shopName = profile.shopName,
-                                    upiId = profile.upiId,
-                                ),
-                            )
+                            customerForReminder = customerDue
                         },
                         onSettleClick = {
                             customerToSettle = customerDue
@@ -738,6 +730,9 @@ fun CustomerListScreen(
             onDeleteCustomerClick = {
                 customerToDelete = customerDue
             },
+            onRemindClick = {
+                customerForReminder = customerDue
+            },
         )
     }
 
@@ -769,6 +764,16 @@ fun CustomerListScreen(
                 customerForTransaction = null
                 Toast.makeText(context, "Entry of ${formatAmount(amount)} added", Toast.LENGTH_SHORT).show()
             },
+        )
+    }
+
+    // Payment Reminder Options Dialog (WhatsApp, WhatsApp Business, SMS)
+    customerForReminder?.let { customerDue ->
+        ReminderOptionsDialog(
+            customerDue = customerDue,
+            shopName = profile.shopName,
+            upiId = profile.upiId,
+            onDismiss = { customerForReminder = null },
         )
     }
 
@@ -1230,6 +1235,7 @@ fun CustomerDetailBottomSheet(
     onSettleClick: () -> Unit,
     onDeleteEntryClick: (Transaction) -> Unit,
     onDeleteCustomerClick: () -> Unit,
+    onRemindClick: () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
@@ -1348,19 +1354,13 @@ fun CustomerDetailBottomSheet(
                             }
 
                             IconButton(
-                                onClick = {
-                                    openWhatsAppReminder(
-                                        context = context,
-                                        phone = customerDue.customer.phone,
-                                        message = reminderMessage(customerDue, shopName, upiId),
-                                    )
-                                },
+                                onClick = onRemindClick,
                                 modifier = Modifier
                                     .size(42.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary),
                             ) {
-                                Icon(Icons.Default.Notifications, contentDescription = "WhatsApp", tint = MaterialTheme.colorScheme.onPrimary)
+                                Icon(Icons.Default.Notifications, contentDescription = "Remind", tint = MaterialTheme.colorScheme.onPrimary)
                             }
                         }
                     }

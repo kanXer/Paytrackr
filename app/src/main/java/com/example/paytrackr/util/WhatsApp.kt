@@ -58,20 +58,66 @@ fun reminderMessage(
     return sb.toString()
 }
 
-fun openWhatsAppReminder(context: Context, phone: String, message: String) {
+fun openWhatsAppReminder(context: Context, phone: String, message: String, isBusiness: Boolean = false) {
     val digits = phone.filter { it.isDigit() }
-    val url = if (digits.isNotEmpty()) {
-        val formattedNumber = if (digits.length == 10) "91$digits" else digits
+    val formattedNumber = if (digits.isNotEmpty()) {
+        if (digits.length == 10) "91$digits" else digits
+    } else {
+        ""
+    }
+    val url = if (formattedNumber.isNotEmpty()) {
         "https://wa.me/$formattedNumber?text=${Uri.encode(message)}"
     } else {
         "https://wa.me/?text=${Uri.encode(message)}"
     }
+    val targetPackage = if (isBusiness) "com.whatsapp.w4b" else "com.whatsapp"
+    val appName = if (isBusiness) "WhatsApp Business" else "WhatsApp"
+
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        setPackage(targetPackage)
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
     try {
         context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {
-        Toast.makeText(context, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
+        if (!isBusiness) {
+            // Fallback: try opening without restricting package if regular package wasn't matched
+            try {
+                val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(fallbackIntent)
+                return
+            } catch (_: Exception) {}
+        }
+        Toast.makeText(context, "$appName is not installed on this device", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun openWhatsAppBusinessReminder(context: Context, phone: String, message: String) {
+    openWhatsAppReminder(context = context, phone = phone, message = message, isBusiness = true)
+}
+
+fun openSmsReminder(context: Context, phone: String, message: String) {
+    val cleanPhone = phone.filter { it.isDigit() || it == '+' }
+    val uri = if (cleanPhone.isNotBlank()) Uri.parse("smsto:$cleanPhone") else Uri.parse("smsto:")
+    val intent = Intent(Intent.ACTION_SENDTO, uri).apply {
+        putExtra("sms_body", message)
+        putExtra(Intent.EXTRA_TEXT, message)
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        try {
+            val viewIntent = Intent(Intent.ACTION_VIEW, uri).apply {
+                putExtra("sms_body", message)
+                putExtra(Intent.EXTRA_TEXT, message)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(viewIntent)
+        } catch (_: Exception) {
+            Toast.makeText(context, "No SMS app found on this device", Toast.LENGTH_SHORT).show()
+        }
     }
 }
