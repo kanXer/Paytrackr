@@ -11,6 +11,86 @@ import java.util.Locale
 
 fun formatAmount(amount: Double): String = "₹" + String.format(Locale.ENGLISH, "%,.2f", amount)
 
+data class ReminderItemBreakdown(
+    val description: String,
+    val amount: Double,
+)
+
+/**
+ * Calculates net unpaid items since the last settlement.
+ * Older statement history before the latest settlement is excluded.
+ * If older pending due remains, it is grouped cleanly as "Other / Purana Baki" without dumping the entire statement.
+ * Jama (payment) values are not displayed in the reminder.
+ */
+fun calculateReminderBreakdown(customerDue: CustomerDue): List<ReminderItemBreakdown> {
+    val totalDue = customerDue.due
+    if (totalDue <= 0.0) return emptyList()
+
+    val allTxns = customerDue.transactions.sortedBy { it.timestamp }
+
+    // 1. Find the last point where the balance was zero or settled
+    var runningBalance = 0.0
+    var lastZeroIndex = -1
+    allTxns.forEachIndexed { index, txn ->
+        if (txn.type == TransactionType.DUE) {
+            runningBalance += txn.amount
+        } else {
+            runningBalance -= txn.amount
+        }
+        if (runningBalance <= 0.05) {
+            lastZeroIndex = index
+        }
+    }
+
+    val lastSettleTxnIndex = allTxns.indexOfLast {
+        it.type == TransactionType.PAYMENT && it.description.contains("settle", ignoreCase = true)
+    }
+    val cutoffIndex = maxOf(lastZeroIndex, lastSettleTxnIndex)
+
+    val currentCycleTxns = if (cutoffIndex != -1 && cutoffIndex < allTxns.size - 1) {
+        allTxns.subList(cutoffIndex + 1, allTxns.size)
+    } else if (cutoffIndex != -1 && cutoffIndex == allTxns.size - 1) {
+        emptyList()
+    } else {
+        allTxns
+    }
+
+    val cycleDues = currentCycleTxns.filter { it.type == TransactionType.DUE }
+
+    if (cycleDues.isEmpty()) {
+        return listOf(ReminderItemBreakdown("Other / Purana Baki", totalDue))
+    }
+
+    // Work backwards from newest dues to account for up to totalDue
+    val reversedDues = cycleDues.reversed()
+    var remainingToAccount = totalDue
+    val recentItems = mutableListOf<ReminderItemBreakdown>()
+
+    for (dueTxn in reversedDues) {
+        if (recentItems.size >= 5) break
+        if (remainingToAccount <= 0.01) break
+
+        val desc = dueTxn.description.trim().ifBlank { "Item" }
+        if (dueTxn.amount <= remainingToAccount) {
+            recentItems.add(ReminderItemBreakdown(desc, dueTxn.amount))
+            remainingToAccount -= dueTxn.amount
+        } else {
+            recentItems.add(ReminderItemBreakdown(desc, remainingToAccount))
+            remainingToAccount = 0.0
+            break
+        }
+    }
+
+    val items = mutableListOf<ReminderItemBreakdown>()
+    // If older balance still remains (older dues before these 5 or prior cycle debt), show single line
+    if (remainingToAccount > 0.01) {
+        items.add(ReminderItemBreakdown("Other / Purana Baki", remainingToAccount))
+    }
+    items.addAll(recentItems.reversed())
+
+    return items
+}
+
 fun reminderMessage(
     customerDue: CustomerDue,
     shopName: String = "",
@@ -21,24 +101,20 @@ fun reminderMessage(
     val store = if (shopName.isNotBlank()) shopName.trim() else "PayTrackr"
     val sb = StringBuilder()
     sb.append("Namaste $name ji,")
-    sb.append("\n\nAapka *$store* par hisab:")
 
-    // Items taken on credit: kya le gya tha (e.g. grossery ₹10, anda ₹50)
-    val dueItems = customerDue.transactions.filter { it.type == TransactionType.DUE }
-    if (dueItems.isNotEmpty()) {
-        sb.append("\n\n*Liye gaye saman / entries:*")
-        dueItems.forEach { t ->
-            val desc = t.description.trim().ifBlank { "Item" }
-            sb.append("\n• $desc: ${formatAmount(t.amount)}")
-        }
+    if (due <= 0.0) {
+        sb.append("\n\nAapka *$store* par hisab nil / settled hai. Dhanyawad! 🙏")
+        return sb.toString()
     }
 
-    val payments = customerDue.transactions.filter { it.type == TransactionType.PAYMENT }
-    if (payments.isNotEmpty()) {
-        sb.append("\n\n*Jama (Paid):*")
-        payments.forEach { p ->
-            val desc = p.description.trim().ifBlank { "Payment" }
-            sb.append("\n• $desc: -${formatAmount(p.amount)}")
+    sb.append("\n\nAapka *$store* par hisab:")
+
+    // Only active items that constitute the current pending due
+    val breakdown = calculateReminderBreakdown(customerDue)
+    if (breakdown.isNotEmpty()) {
+        sb.append("\n\n*Liye gaye saman / Baki entries:*")
+        breakdown.forEach { item ->
+            sb.append("\n• ${item.description}: ${formatAmount(item.amount)}")
         }
     }
 
