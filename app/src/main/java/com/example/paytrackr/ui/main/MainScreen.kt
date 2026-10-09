@@ -152,7 +152,11 @@ fun MainScreen(
                 onSignInWithGoogle = { idToken, onRes -> vm.signInWithGoogle(idToken, onRes) },
                 onSignIn = { email, pass, onRes -> vm.signIn(email, pass, onRes) },
                 onSignUp = { email, pass, name, onRes -> vm.signUp(email, pass, name, onRes) },
-                onContinueAsGuest = { vm.setGuestMode(true) },
+                onContinueAsGuest = { guestName, guestShop ->
+                    val finalShop = if (guestShop.isNotBlank()) guestShop else guestName
+                    vm.saveProfile(profile.copy(name = guestName, shopName = finalShop))
+                    vm.setGuestMode(true)
+                },
                 onSetOrUpdatePassword = { pass, onRes -> vm.setOrUpdatePassword(pass, onRes) },
                 onResetPassword = { email, onRes -> vm.sendPasswordResetEmail(email, onRes) },
             )

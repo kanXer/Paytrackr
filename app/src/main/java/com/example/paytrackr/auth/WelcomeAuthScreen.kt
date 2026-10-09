@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -70,7 +71,7 @@ fun WelcomeAuthScreen(
     onSignInWithGoogle: (String, (Result<FirebaseUser?>) -> Unit) -> Unit,
     onSignIn: (String, String, (Result<FirebaseUser?>) -> Unit) -> Unit,
     onSignUp: (String, String, String, (Result<FirebaseUser?>) -> Unit) -> Unit,
-    onContinueAsGuest: () -> Unit,
+    onContinueAsGuest: (name: String, shopName: String) -> Unit,
     onSetOrUpdatePassword: (String, (Result<Unit>) -> Unit) -> Unit,
     onResetPassword: (String, (Result<Unit>) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
@@ -89,6 +90,7 @@ fun WelcomeAuthScreen(
     var showPasswordDialog by remember { mutableStateOf(false) }
     var targetEmailForPasswordDialog by remember { mutableStateOf("") }
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var showGuestNameDialog by remember { mutableStateOf(false) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -151,6 +153,16 @@ fun WelcomeAuthScreen(
             onDismiss = { showForgotPasswordDialog = false },
             onSubmit = { resetEmail, callback ->
                 onResetPassword(resetEmail, callback)
+            },
+        )
+    }
+
+    if (showGuestNameDialog) {
+        GuestNameDialog(
+            onDismiss = { showGuestNameDialog = false },
+            onConfirm = { guestName, guestShop ->
+                showGuestNameDialog = false
+                onContinueAsGuest(guestName, guestShop)
             },
         )
     }
@@ -509,7 +521,7 @@ fun WelcomeAuthScreen(
 
             // 3. Guest Mode Option Card
             Surface(
-                onClick = onContinueAsGuest,
+                onClick = { showGuestNameDialog = true },
                 shape = RoundedCornerShape(18.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -557,4 +569,92 @@ fun WelcomeAuthScreen(
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
+}
+
+@Composable
+fun GuestNameDialog(
+    initialName: String = "",
+    initialShop: String = "",
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, shopName: String) -> Unit,
+) {
+    var name by remember { mutableStateOf(initialName) }
+    var shopName by remember { mutableStateOf(initialShop) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column {
+                Text(
+                    text = "Guest Account Setup",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Apna naam darj karein taaki reminders aur hisab me display ho sake.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Your Name / Aapka Naam *") },
+                    placeholder = { Text("e.g. Ramesh Kumar") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                OutlinedTextField(
+                    value = shopName,
+                    onValueChange = { shopName = it },
+                    label = { Text("Shop Name / Dukan Ka Naam (Optional)") },
+                    placeholder = { Text("e.g. Ramesh Kirana Store") },
+                    leadingIcon = {
+                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(name.trim(), shopName.trim())
+                    }
+                },
+                enabled = name.isNotBlank(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            ) {
+                Text("Continue / Shuru Karein", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        shape = RoundedCornerShape(22.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+    )
 }
