@@ -1,0 +1,77 @@
+package com.example.paytrackr.util
+
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import com.example.paytrackr.data.CustomerDue
+import com.example.paytrackr.data.TransactionType
+import java.util.Locale
+
+fun formatAmount(amount: Double): String = "₹" + String.format(Locale.ENGLISH, "%,.2f", amount)
+
+fun reminderMessage(
+    customerDue: CustomerDue,
+    shopName: String = "",
+    upiId: String = "",
+): String {
+    val name = customerDue.customer.name
+    val due = customerDue.due
+    val store = if (shopName.isNotBlank()) shopName.trim() else "PayTrackr"
+    val sb = StringBuilder()
+    sb.append("Namaste $name ji,")
+    sb.append("\n\nAapka *$store* par hisab (Pending Due):")
+
+    val dueItems = customerDue.transactions.filter { it.type == TransactionType.DUE }
+    if (dueItems.isNotEmpty()) {
+        dueItems.take(5).forEach { t ->
+            sb.append("\n• ${t.description.ifBlank { "Due" }}: ${formatAmount(t.amount)}")
+        }
+        if (dueItems.size > 5) {
+            sb.append("\n• (+${dueItems.size - 5} aur entries)")
+        }
+    }
+
+    val payments = customerDue.transactions.filter { it.type == TransactionType.PAYMENT }
+    if (payments.isNotEmpty()) {
+        sb.append("\n\nJama rashi (Paid):")
+        payments.take(3).forEach { p ->
+            sb.append("\n• ${p.description.ifBlank { "Payment" }}: -${formatAmount(p.amount)}")
+        }
+    }
+
+    sb.append("\n\n*Kul Baki Rashi (Total Due): ${formatAmount(due)}*")
+
+    if (upiId.isNotBlank() && due > 0) {
+        val cleanUpi = upiId.trim()
+        val formattedAmount = String.format(Locale.ENGLISH, "%.2f", due)
+        val clickableUpiLink = "https://upi.pe/$cleanUpi/$formattedAmount"
+
+        sb.append("\n\n📲 *Pay via UPI:*")
+        sb.append("\n👉 $clickableUpiLink")
+        sb.append("\n\nUPI ID: *$cleanUpi*")
+        sb.append("\nDhanyawad! 🙏")
+    } else {
+        sb.append("\n\nKripya shighra bhugtan karein via UPI ya Cash. Dhanyawad! 🙏")
+    }
+    return sb.toString()
+}
+
+fun openWhatsAppReminder(context: Context, phone: String, message: String) {
+    val digits = phone.filter { it.isDigit() }
+    val url = if (digits.isNotEmpty()) {
+        val formattedNumber = if (digits.length == 10) "91$digits" else digits
+        "https://wa.me/$formattedNumber?text=${Uri.encode(message)}"
+    } else {
+        "https://wa.me/?text=${Uri.encode(message)}"
+    }
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
+    }
+}

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "890595447804",
+    "project_id": "paytrackr-nexus",
+    "storage_bucket": "paytrackr-nexus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:890595447804:android:fc1150ae5cdf141b9ed879",
+        "android_client_info": {
+          "package_name": "com.nexus.paytrackr"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "890595447804-q39p4f5skf2l06of8meivodm4su03rj7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc9MG_O46XhK-yCjMP3iGMgBAGvcZ7DBI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "890595447804-q39p4f5skf2l06of8meivodm4su03rj7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

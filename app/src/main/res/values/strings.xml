@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">PayTrackr</string>
+    <string name="google_web_client_id" translatable="false">890595447804-q39p4f5skf2l06of8meivodm4su03rj7.apps.googleusercontent.com</string>
+</resources>
