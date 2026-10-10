@@ -16,10 +16,38 @@ android {
         versionName = "1.1.3"
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = project.findProperty("PAYTRACKR_KEYSTORE_PATH") as String?
+                ?: System.getenv("PAYTRACKR_KEYSTORE_PATH")
+            val keystorePassword = project.findProperty("PAYTRACKR_KEYSTORE_PASSWORD") as String?
+                ?: System.getenv("PAYTRACKR_KEYSTORE_PASSWORD")
+            val keyAlias = project.findProperty("PAYTRACKR_KEY_ALIAS") as String?
+                ?: System.getenv("PAYTRACKR_KEY_ALIAS")
+            val keyPassword = project.findProperty("PAYTRACKR_KEY_PASSWORD") as String?
+                ?: System.getenv("PAYTRACKR_KEY_PASSWORD")
+
+            if (keystorePath != null && file(keystorePath).exists()) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            } else {
+                val debugSigning = getByName("debug")
+                storeFile = debugSigning.storeFile
+                storePassword = debugSigning.storePassword
+                this.keyAlias = debugSigning.keyAlias
+                this.keyPassword = debugSigning.keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -29,7 +57,7 @@ android {
     buildFeatures {
       compose = true
       aidl = false
-      buildConfig = false
+      buildConfig = true
       shaders = false
     }
 

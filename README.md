@@ -63,9 +63,15 @@ Built with **Jetpack Compose** and **Material 3**.
 2. Open the project in Android Studio.
 3. Place your `google-services.json` inside the `app/` directory (already included for `paytrackr-nexus`).
 4. Build and run the app:
-   ```bash
-   ./gradlew assembleDebug
-   ```
+   - **Debug**:
+     ```bash
+     ./gradlew assembleDebug
+     ```
+   - **Production Release**:
+     ```bash
+     ./gradlew assembleRelease
+     ```
+     The signed and optimized production APK will be generated at `app/build/outputs/apk/release/app-release.apk`.
 
 ---
 
